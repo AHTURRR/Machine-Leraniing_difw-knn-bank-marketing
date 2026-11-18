@@ -1,0 +1,17 @@
+feature,feature_type,is_leakage,mutual_information
+duration,Numerik,True,0.0709
+poutcome,Kategorikal,False,0.0294
+pdays,Numerik,False,0.02748
+month,Kategorikal,False,0.02435
+balance,Numerik,False,0.02234
+contact,Kategorikal,False,0.01363
+age,Numerik,False,0.01332
+previous,Numerik,False,0.01106
+housing,Kategorikal,False,0.00965
+job,Kategorikal,False,0.00826
+day,Numerik,False,0.00693
+campaign,Numerik,False,0.00656
+loan,Kategorikal,False,0.00263
+education,Kategorikal,False,0.0026
+marital,Kategorikal,False,0.0021
+default,Kategorikal,False,0.00029

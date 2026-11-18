@@ -1,0 +1,6 @@
+check_name,status,measured_value
+Finite check (tanpa NaN/Inf pada Euclidean & Mixed),PASS,"euc=True, mixed=True"
+"Self-distance d_j(x, x) = 0",PASS,max_diag=0.0e+00
+"Simetri d_j(x, z) = d_j(z, x)",PASS,max_diff=0.0e+00
+"Rentang jarak fitur d_j(x, z) dalam [0, 1]",PASS,"[0.0000, 1.0000]"
+Konsistensi batched weighted distance vs exact pairwise,PASS,max_diff=1.1e-16

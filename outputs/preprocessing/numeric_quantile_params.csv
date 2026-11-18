@@ -1,0 +1,7 @@
+feature,q05_train,q95_train,range_q95_q05
+age,27.0,59.0,32.0
+balance,-171.0,5779.65,5950.65
+day,3.0,29.0,26.0
+campaign,1.0,8.0,7.0
+previous,0.0,3.0,3.0
+pdays_recency,0.0,0.568513,0.568513

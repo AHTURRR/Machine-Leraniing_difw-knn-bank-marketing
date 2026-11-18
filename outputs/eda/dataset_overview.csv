@@ -1,0 +1,2 @@
+n_rows,n_cols,n_predictors,n_numeric,n_categorical,n_explicit_nan,n_duplicate_rows,n_yes,pct_yes,n_no,pct_no,imbalance_ratio_no_per_yes,memory_mb
+45211,17,16,7,9,0,0,5289,11.6985,39922,88.3015,7.5481,25.749

@@ -1,0 +1,2 @@
+n_total,n_not_contacted_neg1,pct_not_contacted_neg1,n_contacted_gt_neg1,pct_contacted_gt_neg1,n_pdays_zero,n_pdays_lt_neg1,prev_zero_given_neg1_match_pct,poutcome_unknown_given_neg1_pct,prev_gt0_given_contacted_pct,all_rows_q05,all_rows_q95,all_rows_q95_minus_q05,contacted_min,contacted_mean,contacted_std,contacted_q05,contacted_median,contacted_q95,contacted_max,contacted_q95_minus_q05,yes_rate_not_contacted_pct,yes_rate_contacted_pct
+45211,36954,81.74,8257,18.26,0,0,100.0,100.0,100.0,-1.0,317.0,318.0,1.0,224.58,115.34,79.0,194.0,370.0,871.0,291.0,9.16,23.07

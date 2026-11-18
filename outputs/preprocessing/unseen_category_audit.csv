@@ -1,0 +1,11 @@
+feature,n_train_categories,n_test_categories,n_unseen_in_test,unseen_labels
+job,12,12,0,-
+marital,3,3,0,-
+education,4,4,0,-
+default,2,2,0,-
+housing,2,2,0,-
+loan,2,2,0,-
+contact,3,3,0,-
+month,12,12,0,-
+poutcome,4,4,0,-
+previously_contacted,2,2,0,-
