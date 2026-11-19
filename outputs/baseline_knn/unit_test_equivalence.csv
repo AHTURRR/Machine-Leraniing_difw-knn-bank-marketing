@@ -1,0 +1,5 @@
+k,weights,max_prob_abs_diff_k,max_dist_trunc_diff,n_boundary_tie_rows_maxk,status
+5,uniform,0.0,0.0,2,PASS
+5,distance,2.220446049250313e-16,0.0,2,PASS
+21,uniform,0.0,0.0,0,PASS
+21,distance,3.3306690738754696e-16,0.0,0,PASS

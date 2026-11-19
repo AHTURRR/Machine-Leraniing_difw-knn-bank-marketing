@@ -78,11 +78,11 @@
 
 | Model | Accuracy | Precision (yes) | Recall (yes) | F1 (yes) | PR-AUC | MCC |
 |---|---:|---:|---:|---:|---:|---:|
-| Standard KNN | — | — | — | — | — | — |
-| Optimized KNN | — | — | — | — | — | — |
+| Standard KNN (E0: k=5, uniform) | 0.8884 | 0.5650 | 0.2013 | 0.2969 | 0.2921 | 0.2907 |
+| Optimized KNN (E1: k=3, uniform; Best CV F1) | 0.8816 | 0.4876 | 0.2420 | 0.3234 | 0.2619 | 0.2863 |
 | Mixed-Type KNN | — | — | — | — | — | — |
 | Feature-Weighted KNN | — | — | — | — | — | — |
 | Cost-Sensitive KNN | — | — | — | — | — | — |
 | DIFW-KNN lengkap | — | — | — | — | — | — |
 
-**Catatan:** hasil metrik belum tersedia.
+**Catatan:** Hasil `E0` & `E1` di atas diukur pada Hold-out Test Set (`9.043` observasi); varian `E1-PR` (Best CV PR-AUC: `k=51, distance`) mencapai `PR-AUC = 0.4042` namun `F1 = 0.2284` (`Recall = 0.1361`) pada threshold `0.50`. Metrik untuk `E2`–`E5` belum tersedia.

@@ -1,0 +1,10 @@
+feature,n_categories,chi2_stat,dof,p_value,balanced_at_alpha_0_05
+job,12,10.5001,11,0.486,True
+marital,3,0.0354,2,0.9825,True
+education,4,3.3715,3,0.3378,True
+default,2,0.1571,1,0.6918,True
+housing,2,3.4017,1,0.0651,True
+loan,2,0.312,1,0.5764,True
+contact,3,0.8549,2,0.6522,True
+month,12,18.0328,11,0.0808,True
+poutcome,4,2.0035,3,0.5717,True
