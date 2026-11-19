@@ -6,21 +6,6 @@ generates diagnostic visualizations, and writes Laporan_Preprocessing_DIFW_KNN.m
 """
 
 from __future__ import annotations
-
-import sys
-from pathlib import Path
-from typing import Any
-
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
 from src.preprocessing import (
     DEFAULT_RANDOM_STATE,
     DEFAULT_TEST_SIZE,
@@ -34,9 +19,23 @@ from src.preprocessing import (
     load_raw_dataset,
     stratified_split_data,
 )
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+import sys
+from pathlib import Path
+from typing import Any
+
+import matplotlib
+matplotlib.use("Agg")
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 
-RAW_DATA_PATH = PROJECT_ROOT / "bank-full.csv"
+RAW_DATA_PATH = PROJECT_ROOT / "data" / "bank-full.csv"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 OUTPUT_DIR = PROJECT_ROOT / "outputs" / "preprocessing"
 FIGURES_DIR = OUTPUT_DIR / "figures"
@@ -121,9 +120,11 @@ def run_distance_unit_checks(
     )
 
     # 1. NaN / Inf checks
-    euc_finite = bool(np.isfinite(X_train_euc).all() and np.isfinite(X_test_euc).all())
+    euc_finite = bool(np.isfinite(X_train_euc).all()
+                      and np.isfinite(X_test_euc).all())
     num_finite = bool(
-        np.isfinite(X_train_enc.numeric).all() and np.isfinite(X_test_enc.numeric).all()
+        np.isfinite(X_train_enc.numeric).all(
+        ) and np.isfinite(X_test_enc.numeric).all()
     )
 
     # 2. Per-feature distances
@@ -147,7 +148,8 @@ def run_distance_unit_checks(
     # 3. Weighted matrix consistency vs direct pairwise mean
     u = np.full(len(DOMAIN_FEATURE_COLS), 1.0 / len(DOMAIN_FEATURE_COLS))
     dw_direct = (d_ab * u[None, None, :]).sum(axis=2)
-    dw_batched = mixed_prep.compute_weighted_distance_matrix(sub_a, sub_b, weights=u, batch_size=64)
+    dw_batched = mixed_prep.compute_weighted_distance_matrix(
+        sub_a, sub_b, weights=u, batch_size=64)
     batch_diff = float(np.max(np.abs(dw_direct - dw_batched)))
     batch_ok = batch_diff <= 1e-12
 
@@ -204,16 +206,22 @@ def create_preprocessing_figures(
 
     # 1. Stratified split verification
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
-    splits = ["Full Dataset\n(45,211)", f"Train Split\n({len(y_train):,})", f"Test Split\n({len(y_test):,})"]
-    counts_no = [int((y_full == 0).sum()), int((y_train == 0).sum()), int((y_test == 0).sum())]
-    counts_yes = [int((y_full == 1).sum()), int((y_train == 1).sum()), int((y_test == 1).sum())]
-    pct_yes = [100.0 * y_full.mean(), 100.0 * y_train.mean(), 100.0 * y_test.mean()]
+    splits = [
+        "Full Dataset\n(45,211)", f"Train Split\n({len(y_train):,})", f"Test Split\n({len(y_test):,})"]
+    counts_no = [int((y_full == 0).sum()), int(
+        (y_train == 0).sum()), int((y_test == 0).sum())]
+    counts_yes = [int((y_full == 1).sum()), int(
+        (y_train == 1).sum()), int((y_test == 1).sum())]
+    pct_yes = [100.0 * y_full.mean(), 100.0 * y_train.mean(),
+               100.0 * y_test.mean()]
     pct_no = [100.0 - p for p in pct_yes]
 
     x = np.arange(len(splits))
     w = 0.35
-    b1 = axes[0].bar(x - w / 2, counts_no, width=w, label="no (0)", color="#4C72B0")
-    b2 = axes[0].bar(x + w / 2, counts_yes, width=w, label="yes (1)", color="#DD8452")
+    b1 = axes[0].bar(x - w / 2, counts_no, width=w,
+                     label="no (0)", color="#4C72B0")
+    b2 = axes[0].bar(x + w / 2, counts_yes, width=w,
+                     label="yes (1)", color="#DD8452")
     axes[0].set_xticks(x)
     axes[0].set_xticklabels(splits)
     axes[0].set_title("Jumlah Observasi per Split (80:20 Stratified)")
@@ -223,17 +231,21 @@ def create_preprocessing_figures(
     for bars in (b1, b2):
         for bar in bars:
             h = bar.get_height()
-            axes[0].text(bar.get_x() + bar.get_width() / 2, h + 500, f"{int(h):,}", ha="center", fontsize=8.5)
+            axes[0].text(bar.get_x() + bar.get_width() / 2, h +
+                         500, f"{int(h):,}", ha="center", fontsize=8.5)
 
     axes[1].bar(splits, pct_no, label="no (0)", color="#4C72B0")
-    axes[1].bar(splits, pct_yes, bottom=pct_no, label="yes (1)", color="#DD8452")
+    axes[1].bar(splits, pct_yes, bottom=pct_no,
+                label="yes (1)", color="#DD8452")
     axes[1].set_title("Verifikasi Proporsi Target Identik (Stratifikasi)")
     axes[1].set_ylabel("Persentase (%)")
     axes[1].set_ylim(0, 118)
     axes[1].legend(loc="upper center", ncol=2, frameon=True)
     for idx, p_y in enumerate(pct_yes):
-        axes[1].text(idx, 100 - p_y / 2, f"{p_y:.2f}%", ha="center", va="center", color="white", fontweight="bold")
-        axes[1].text(idx, (100 - p_y) / 2, f"{100 - p_y:.2f}%", ha="center", va="center", color="white", fontweight="bold")
+        axes[1].text(idx, 100 - p_y / 2, f"{p_y:.2f}%", ha="center",
+                     va="center", color="white", fontweight="bold")
+        axes[1].text(idx, (100 - p_y) / 2, f"{100 - p_y:.2f}%",
+                     ha="center", va="center", color="white", fontweight="bold")
 
     fig.tight_layout()
     p1 = FIGURES_DIR / "01_stratified_split_verification.png"
@@ -244,17 +256,22 @@ def create_preprocessing_figures(
     # 2. pdays transformation: raw vs pdays_recency + conversion by recency
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.6))
     pdays_pos_raw = X_train_raw.loc[X_train_raw["pdays"] > -1, "pdays"]
-    axes[0].hist(pdays_pos_raw, bins=35, color="#8172B3", alpha=0.85, edgecolor="white", linewidth=0.4)
+    axes[0].hist(pdays_pos_raw, bins=35, color="#8172B3",
+                 alpha=0.85, edgecolor="white", linewidth=0.4)
     axes[0].axvline(mixed_prep.feature_engineer.pdays_median_pos_, color="#D62728", linestyle="--",
                     label=f"M_pos={mixed_prep.feature_engineer.pdays_median_pos_:.0f}")
-    axes[0].set_title("Sebelum: pdays Mentah (Subset > -1)\n81.74% bernilai sentinel -1")
+    axes[0].set_title(
+        "Sebelum: pdays Mentah (Subset > -1)\n81.74% bernilai sentinel -1")
     axes[0].set_xlabel("pdays (hari)")
     axes[0].set_ylabel("Frekuensi (Train)")
     axes[0].legend(fontsize=8.5)
 
-    rec_pos = X_train_dom.loc[X_train_dom["previously_contacted"] == "1", "pdays_recency"]
-    axes[1].hist(rec_pos, bins=35, color="#55A868", alpha=0.85, edgecolor="white", linewidth=0.4)
-    axes[1].set_title("Sesudah: pdays_recency (Subset Kontak=1)\n0.0 khusus untuk belum pernah dihubungi")
+    rec_pos = X_train_dom.loc[X_train_dom["previously_contacted"]
+                              == "1", "pdays_recency"]
+    axes[1].hist(rec_pos, bins=35, color="#55A868",
+                 alpha=0.85, edgecolor="white", linewidth=0.4)
+    axes[1].set_title(
+        "Sesudah: pdays_recency (Subset Kontak=1)\n0.0 khusus untuk belum pernah dihubungi")
     axes[1].set_xlabel("pdays_recency = 1 / (1 + pdays / M_pos)")
     axes[1].set_ylabel("Frekuensi (Train)")
 
@@ -268,18 +285,23 @@ def create_preprocessing_figures(
     )
     not_c = rec_df[rec_df["prev_contacted"] == "0"]
     yes_c = rec_df[rec_df["prev_contacted"] == "1"].copy()
-    yes_c["q_bin"] = pd.qcut(yes_c["recency"], q=4, labels=["Q1 (Lama)", "Q2", "Q3", "Q4 (Baru)"])
+    yes_c["q_bin"] = pd.qcut(yes_c["recency"], q=4, labels=[
+                             "Q1 (Lama)", "Q2", "Q3", "Q4 (Baru)"])
     summary_rates = [100.0 * not_c["y"].mean()] + [
         100.0 * yes_c.loc[yes_c["q_bin"] == lbl, "y"].mean()
         for lbl in ["Q1 (Lama)", "Q2", "Q3", "Q4 (Baru)"]
     ]
-    labels_rec = ["Belum Kontak\n(recency=0)", "Q1\n(Lama)", "Q2", "Q3", "Q4\n(Baru)"]
-    bars_r = axes[2].bar(labels_rec, summary_rates, color=["#7F7F7F", "#4C72B0", "#55A868", "#CCB974", "#DD8452"])
-    axes[2].set_title("Konversi (y=yes) pada Fitur Hasil Rekayasa\n(Data Training)")
+    labels_rec = ["Belum Kontak\n(recency=0)",
+                  "Q1\n(Lama)", "Q2", "Q3", "Q4\n(Baru)"]
+    bars_r = axes[2].bar(labels_rec, summary_rates, color=[
+                         "#7F7F7F", "#4C72B0", "#55A868", "#CCB974", "#DD8452"])
+    axes[2].set_title(
+        "Konversi (y=yes) pada Fitur Hasil Rekayasa\n(Data Training)")
     axes[2].set_ylabel("Tingkat Konversi (%)")
     axes[2].set_ylim(0, max(summary_rates) * 1.22)
     for bar, val in zip(bars_r, summary_rates):
-        axes[2].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.6, f"{val:.1f}%", ha="center", fontsize=8.5)
+        axes[2].text(bar.get_x() + bar.get_width() / 2, bar.get_height() +
+                     0.6, f"{val:.1f}%", ha="center", fontsize=8.5)
 
     fig.tight_layout()
     p2 = FIGURES_DIR / "02_pdays_engineering_comparison.png"
@@ -295,22 +317,29 @@ def create_preprocessing_figures(
         categorical=X_train_enc.categorical[sample_idx],
         feature_names=X_train_enc.feature_names,
     )
-    d_mixed = mixed_prep.compute_pairwise_feature_distances(sample_mixed, sample_mixed)
+    d_mixed = mixed_prep.compute_pairwise_feature_distances(
+        sample_mixed, sample_mixed)
     iu = np.triu_indices(250, k=1)
 
     # Compute pairwise feature differences on the 6 standardized numeric features
     euc_num = X_train_euc[sample_idx, : len(DOMAIN_NUMERIC_COLS)]
-    euc_diffs = [np.abs(euc_num[:, j][iu[0]] - euc_num[:, j][iu[1]]) for j in range(len(DOMAIN_NUMERIC_COLS))]
-    mixed_diffs = [d_mixed[:, :, j][iu[0], iu[1]] for j in range(len(DOMAIN_NUMERIC_COLS))]
+    euc_diffs = [np.abs(euc_num[:, j][iu[0]] - euc_num[:, j][iu[1]])
+                 for j in range(len(DOMAIN_NUMERIC_COLS))]
+    mixed_diffs = [d_mixed[:, :, j][iu[0], iu[1]]
+                   for j in range(len(DOMAIN_NUMERIC_COLS))]
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 4.8))
-    axes[0].boxplot(euc_diffs, tick_labels=DOMAIN_NUMERIC_COLS, vert=True, showfliers=True)
-    axes[0].set_title("Jalur Euclidean (E0–E1): |z_i - z_k| Setelah StandardScaler\n(Rentan Outlier Ekstrem)")
+    axes[0].boxplot(euc_diffs, tick_labels=DOMAIN_NUMERIC_COLS,
+                    vert=True, showfliers=True)
+    axes[0].set_title(
+        "Jalur Euclidean (E0–E1): |z_i - z_k| Setelah StandardScaler\n(Rentan Outlier Ekstrem)")
     axes[0].set_ylabel("Selisih Absolut (Satuan Std Dev)")
     axes[0].tick_params(axis="x", rotation=20)
 
-    axes[1].boxplot(mixed_diffs, tick_labels=DOMAIN_NUMERIC_COLS, vert=True, showfliers=True)
-    axes[1].set_title("Jalur Mixed-Type (E2–E5): d_j(x, z) Berbasis Q95–Q05\n(Terikat Rapi pada [0, 1])")
+    axes[1].boxplot(mixed_diffs, tick_labels=DOMAIN_NUMERIC_COLS,
+                    vert=True, showfliers=True)
+    axes[1].set_title(
+        "Jalur Mixed-Type (E2–E5): d_j(x, z) Berbasis Q95–Q05\n(Terikat Rapi pada [0, 1])")
     axes[1].set_ylabel("Jarak Fitur Terklip [0, 1]")
     axes[1].set_ylim(-0.05, 1.08)
     axes[1].tick_params(axis="x", rotation=20)
@@ -372,8 +401,10 @@ def build_report(
 
     quantile_df = mixed_prep.get_numeric_params_table()
     m_pos = mixed_prep.feature_engineer.pdays_median_pos_
-    rec_train_pos = X_train_dom.loc[X_train_dom["previously_contacted"] == "1", "pdays_recency"]
-    rec_test_pos = X_test_dom.loc[X_test_dom["previously_contacted"] == "1", "pdays_recency"]
+    rec_train_pos = X_train_dom.loc[X_train_dom["previously_contacted"]
+                                    == "1", "pdays_recency"]
+    rec_test_pos = X_test_dom.loc[X_test_dom["previously_contacted"]
+                                  == "1", "pdays_recency"]
 
     pdays_summary_df = pd.DataFrame(
         [
@@ -518,15 +549,18 @@ def main() -> None:
     quantile_df = mixed_prep.get_numeric_params_table()
     quantile_df.to_csv(OUTPUT_DIR / "numeric_quantile_params.csv", index=False)
     unseen_df.to_csv(OUTPUT_DIR / "unseen_category_audit.csv", index=False)
-    unit_checks_df.to_csv(OUTPUT_DIR / "preprocessing_unit_checks.csv", index=False)
+    unit_checks_df.to_csv(
+        OUTPUT_DIR / "preprocessing_unit_checks.csv", index=False)
     pd.DataFrame({"feature_name": euc_prep.output_feature_names_}).to_csv(
         OUTPUT_DIR / "baseline_euclidean_features.csv", index=False
     )
 
     split_summary = pd.DataFrame(
         [
-            {"subset": "train", "n_rows": len(X_train_raw), "n_yes": int(y_train.sum()), "pct_yes": round(100.0 * y_train.mean(), 4)},
-            {"subset": "test", "n_rows": len(X_test_raw), "n_yes": int(y_test.sum()), "pct_yes": round(100.0 * y_test.mean(), 4)},
+            {"subset": "train", "n_rows": len(X_train_raw), "n_yes": int(
+                y_train.sum()), "pct_yes": round(100.0 * y_train.mean(), 4)},
+            {"subset": "test", "n_rows": len(X_test_raw), "n_yes": int(
+                y_test.sum()), "pct_yes": round(100.0 * y_test.mean(), 4)},
         ]
     )
     split_summary.to_csv(OUTPUT_DIR / "split_summary.csv", index=False)
@@ -563,8 +597,10 @@ def main() -> None:
     print("Preprocessing & Feature Engineering selesai.")
     print(f"Train split: {X_train_raw.shape} (yes={100*y_train.mean():.2f}%), Test split: {X_test_raw.shape} (yes={100*y_test.mean():.2f}%)")
     print(f"M_pos_train: {mixed_prep.feature_engineer.pdays_median_pos_}")
-    print(f"Euclidean shape: train={X_train_euc.shape}, test={X_test_euc.shape}")
-    print(f"Mixed-Type numeric={X_train_enc.numeric.shape}, categorical={X_train_enc.categorical.shape}")
+    print(
+        f"Euclidean shape: train={X_train_euc.shape}, test={X_test_euc.shape}")
+    print(
+        f"Mixed-Type numeric={X_train_enc.numeric.shape}, categorical={X_train_enc.categorical.shape}")
     print(f"Laporan disimpan di: {REPORT_PATH}")
 
 

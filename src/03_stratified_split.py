@@ -8,23 +8,6 @@ Laporan_Stratified_Split_DIFW_KNN.md.
 """
 
 from __future__ import annotations
-
-import sys
-from pathlib import Path
-from typing import Any
-
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-from scipy import stats
-from sklearn.model_selection import StratifiedKFold
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
 from src.preprocessing import (
     DEFAULT_RANDOM_STATE,
     DEFAULT_TEST_SIZE,
@@ -34,9 +17,25 @@ from src.preprocessing import (
     load_raw_dataset,
     stratified_split_data,
 )
+from sklearn.model_selection import StratifiedKFold
+from scipy import stats
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+import sys
+from pathlib import Path
+from typing import Any
+
+import matplotlib
+matplotlib.use("Agg")
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 
-RAW_DATA_PATH = PROJECT_ROOT / "bank-full.csv"
+RAW_DATA_PATH = PROJECT_ROOT / "data" / "bank-full.csv"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 OUTPUT_DIR = PROJECT_ROOT / "outputs" / "split"
 FIGURES_DIR = OUTPUT_DIR / "figures"
@@ -135,7 +134,8 @@ def build_cv_folds(
     random_state: int = DEFAULT_RANDOM_STATE,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Assign deterministic Stratified K-Fold IDs on training rows."""
-    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True,
+                          random_state=random_state)
     fold_ids = np.full(len(y_train), -1, dtype=np.int64)
     dummy_x = np.zeros(len(y_train), dtype=np.int8)
 
@@ -157,7 +157,8 @@ def build_cv_folds(
         )
 
     if (fold_ids < 0).any():
-        raise RuntimeError("Ada baris training yang belum mendapat assignment fold_id.")
+        raise RuntimeError(
+            "Ada baris training yang belum mendapat assignment fold_id.")
 
     folds_df = pd.DataFrame(
         {
@@ -190,25 +191,33 @@ def create_split_figures(
         f"Train / Dev\n({len(y_train):,})",
         f"Hold-out Test\n({len(y_test):,})",
     ]
-    pct_yes_splits = [100.0 * float(y_clean.mean()), 100.0 * float(y_train.mean()), 100.0 * float(y_test.mean())]
-    bars_s = axes[0].bar(split_labels, pct_yes_splits, color=["#4C72B0", "#55A868", "#DD8452"], width=0.55)
-    axes[0].axhline(pct_yes_splits[0], color="#333333", linestyle="--", linewidth=1, label=f"Target Global ({pct_yes_splits[0]:.2f}%)")
+    pct_yes_splits = [100.0 * float(y_clean.mean()), 100.0 *
+                      float(y_train.mean()), 100.0 * float(y_test.mean())]
+    bars_s = axes[0].bar(split_labels, pct_yes_splits, color=[
+                         "#4C72B0", "#55A868", "#DD8452"], width=0.55)
+    axes[0].axhline(pct_yes_splits[0], color="#333333", linestyle="--",
+                    linewidth=1, label=f"Target Global ({pct_yes_splits[0]:.2f}%)")
     axes[0].set_title("Proporsi Kelas Positif (y=yes): Train vs Hold-out Test")
     axes[0].set_ylabel("Persentase Kelas 'yes' (%)")
     axes[0].set_ylim(0, 15.5)
     axes[0].legend(loc="upper right", fontsize=8.5)
     for bar, val in zip(bars_s, pct_yes_splits):
-        axes[0].text(bar.get_x() + bar.get_width() / 2, val + 0.35, f"{val:.4f}%", ha="center", fontweight="bold", fontsize=9)
+        axes[0].text(bar.get_x() + bar.get_width() / 2, val + 0.35,
+                     f"{val:.4f}%", ha="center", fontweight="bold", fontsize=9)
 
-    fold_labels = [f"Fold {int(f)}\n(n={int(n):,})" for f, n in zip(cv_summary["fold_id"], cv_summary["n_val_fold"])]
-    bars_f = axes[1].bar(fold_labels, cv_summary["pct_val_yes"], color="#8172B3", width=0.58)
-    axes[1].axhline(pct_yes_splits[1], color="#333333", linestyle="--", linewidth=1, label=f"Train Mean ({pct_yes_splits[1]:.2f}%)")
+    fold_labels = [f"Fold {int(f)}\n(n={int(n):,})" for f, n in zip(
+        cv_summary["fold_id"], cv_summary["n_val_fold"])]
+    bars_f = axes[1].bar(
+        fold_labels, cv_summary["pct_val_yes"], color="#8172B3", width=0.58)
+    axes[1].axhline(pct_yes_splits[1], color="#333333", linestyle="--",
+                    linewidth=1, label=f"Train Mean ({pct_yes_splits[1]:.2f}%)")
     axes[1].set_title("Keseimbangan Stratifikasi 5-Fold Validation Set")
     axes[1].set_ylabel("Persentase Kelas 'yes' (%)")
     axes[1].set_ylim(0, 15.5)
     axes[1].legend(loc="upper right", fontsize=8.5)
     for bar, val in zip(bars_f, cv_summary["pct_val_yes"]):
-        axes[1].text(bar.get_x() + bar.get_width() / 2, val + 0.35, f"{val:.2f}%", ha="center", fontweight="bold", fontsize=8.5)
+        axes[1].text(bar.get_x() + bar.get_width() / 2, val + 0.35,
+                     f"{val:.2f}%", ha="center", fontweight="bold", fontsize=8.5)
 
     fig.tight_layout()
     p1 = FIGURES_DIR / "01_train_test_and_5fold_balance.png"
@@ -221,14 +230,19 @@ def create_split_figures(
     combined_p = pd.concat(
         [
             num_balance[["feature", "p_value"]].assign(kind="KS (Numerik)"),
-            cat_balance[["feature", "p_value"]].assign(kind="Chi2 (Kategorikal)"),
+            cat_balance[["feature", "p_value"]].assign(
+                kind="Chi2 (Kategorikal)"),
         ],
         ignore_index=True,
     ).sort_values("p_value", ascending=True)
-    bar_colors = ["#4C72B0" if k.startswith("KS") else "#55A868" for k in combined_p["kind"]]
-    axes[0].barh(combined_p["feature"], combined_p["p_value"], color=bar_colors, alpha=0.88)
-    axes[0].axvline(0.05, color="#D62728", linestyle="--", linewidth=1.3, label="alpha = 0.05")
-    axes[0].set_title("Uji Keseimbangan Fitur Train vs Test\n(Semua p-value >= 0.05 = Seimbang)")
+    bar_colors = ["#4C72B0" if k.startswith(
+        "KS") else "#55A868" for k in combined_p["kind"]]
+    axes[0].barh(combined_p["feature"], combined_p["p_value"],
+                 color=bar_colors, alpha=0.88)
+    axes[0].axvline(0.05, color="#D62728", linestyle="--",
+                    linewidth=1.3, label="alpha = 0.05")
+    axes[0].set_title(
+        "Uji Keseimbangan Fitur Train vs Test\n(Semua p-value >= 0.05 = Seimbang)")
     axes[0].set_xlabel("p-value")
     axes[0].set_xlim(0, 1.08)
     axes[0].legend(fontsize=8.5, loc="lower right")
@@ -237,8 +251,10 @@ def create_split_figures(
     # Panel B: Empirical CDF of age (Train vs Test)
     tr_age = np.sort(X_train["age"].astype(float).to_numpy())
     te_age = np.sort(X_test["age"].astype(float).to_numpy())
-    axes[1].plot(tr_age, np.linspace(0, 1, len(tr_age)), label="Train (36,168)", color="#4C72B0", linewidth=2)
-    axes[1].plot(te_age, np.linspace(0, 1, len(te_age)), label="Hold-out Test (9,043)", color="#DD8452", linestyle="--", linewidth=1.8)
+    axes[1].plot(tr_age, np.linspace(0, 1, len(tr_age)),
+                 label="Train (36,168)", color="#4C72B0", linewidth=2)
+    axes[1].plot(te_age, np.linspace(0, 1, len(te_age)),
+                 label="Hold-out Test (9,043)", color="#DD8452", linestyle="--", linewidth=1.8)
     axes[1].set_title("Alignment Distribusi Fitur 'age' (ECDF)")
     axes[1].set_xlabel("age")
     axes[1].set_ylabel("Probabilitas Kumulatif")
@@ -249,8 +265,10 @@ def create_split_figures(
     te_pout = 100.0 * X_test["poutcome"].value_counts(normalize=True)
     cats = ["unknown", "failure", "other", "success"]
     x_c = np.arange(len(cats))
-    axes[2].bar(x_c - 0.18, [tr_pout.get(c, 0.0) for c in cats], width=0.36, label="Train", color="#4C72B0")
-    axes[2].bar(x_c + 0.18, [te_pout.get(c, 0.0) for c in cats], width=0.36, label="Hold-out Test", color="#DD8452")
+    axes[2].bar(x_c - 0.18, [tr_pout.get(c, 0.0)
+                for c in cats], width=0.36, label="Train", color="#4C72B0")
+    axes[2].bar(x_c + 0.18, [te_pout.get(c, 0.0) for c in cats],
+                width=0.36, label="Hold-out Test", color="#DD8452")
     axes[2].set_xticks(x_c)
     axes[2].set_xticklabels(cats)
     axes[2].set_title("Alignment Proporsi Kategori 'poutcome'")
@@ -376,23 +394,31 @@ def main() -> None:
         random_state=DEFAULT_RANDOM_STATE,
     )
 
-    X_train.assign(y=y_train).to_csv(PROCESSED_DIR / "train_split.csv", index=False)
-    X_test.assign(y=y_test).to_csv(PROCESSED_DIR / "test_split.csv", index=False)
+    X_train.assign(y=y_train).to_csv(
+        PROCESSED_DIR / "train_split.csv", index=False)
+    X_test.assign(y=y_test).to_csv(
+        PROCESSED_DIR / "test_split.csv", index=False)
 
     num_balance = check_numeric_covariate_balance(X_train, X_test)
     cat_balance = check_categorical_covariate_balance(X_train, X_test)
-    folds_df, cv_summary = build_cv_folds(y_train, n_splits=N_CV_FOLDS, random_state=DEFAULT_RANDOM_STATE)
+    folds_df, cv_summary = build_cv_folds(
+        y_train, n_splits=N_CV_FOLDS, random_state=DEFAULT_RANDOM_STATE)
 
     folds_df.to_csv(PROCESSED_DIR / "train_cv_folds.csv", index=False)
-    num_balance.to_csv(OUTPUT_DIR / "covariate_balance_numeric.csv", index=False)
-    cat_balance.to_csv(OUTPUT_DIR / "covariate_balance_categorical.csv", index=False)
+    num_balance.to_csv(
+        OUTPUT_DIR / "covariate_balance_numeric.csv", index=False)
+    cat_balance.to_csv(
+        OUTPUT_DIR / "covariate_balance_categorical.csv", index=False)
     cv_summary.to_csv(OUTPUT_DIR / "cv_fold_summary.csv", index=False)
 
     split_overview = pd.DataFrame(
         [
-            {"subset": "full", "n_rows": len(X_clean), "n_yes": int(y_clean.sum()), "pct_yes": round(100.0 * float(y_clean.mean()), 4)},
-            {"subset": "train", "n_rows": len(X_train), "n_yes": int(y_train.sum()), "pct_yes": round(100.0 * float(y_train.mean()), 4)},
-            {"subset": "test", "n_rows": len(X_test), "n_yes": int(y_test.sum()), "pct_yes": round(100.0 * float(y_test.mean()), 4)},
+            {"subset": "full", "n_rows": len(X_clean), "n_yes": int(
+                y_clean.sum()), "pct_yes": round(100.0 * float(y_clean.mean()), 4)},
+            {"subset": "train", "n_rows": len(X_train), "n_yes": int(
+                y_train.sum()), "pct_yes": round(100.0 * float(y_train.mean()), 4)},
+            {"subset": "test", "n_rows": len(X_test), "n_yes": int(
+                y_test.sum()), "pct_yes": round(100.0 * float(y_test.mean()), 4)},
         ]
     )
     split_overview.to_csv(OUTPUT_DIR / "split_overview.csv", index=False)
@@ -423,8 +449,10 @@ def main() -> None:
 
     print("Tahap 03 (Stratified Train-Test Split & 5-Fold Setup) selesai.")
     print(f"Train: {X_train.shape} (yes={100*y_train.mean():.4f}%), Hold-out Test: {X_test.shape} (yes={100*y_test.mean():.4f}%)")
-    print(f"Numeric balance passed (p>=0.05): {int(num_balance['balanced_at_alpha_0_05'].sum())}/{len(num_balance)}")
-    print(f"Categorical balance passed (p>=0.05): {int(cat_balance['balanced_at_alpha_0_05'].sum())}/{len(cat_balance)}")
+    print(
+        f"Numeric balance passed (p>=0.05): {int(num_balance['balanced_at_alpha_0_05'].sum())}/{len(num_balance)}")
+    print(
+        f"Categorical balance passed (p>=0.05): {int(cat_balance['balanced_at_alpha_0_05'].sum())}/{len(cat_balance)}")
     print(f"CV folds saved: {PROCESSED_DIR / 'train_cv_folds.csv'}")
 
 

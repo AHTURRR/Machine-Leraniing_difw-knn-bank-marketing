@@ -5,28 +5,29 @@ and a structured Markdown report at Laporan_EDA_DIFW_KNN.md in the project root.
 """
 
 from __future__ import annotations
+from sklearn.preprocessing import OrdinalEncoder
+from sklearn.metrics import roc_auc_score
+from sklearn.feature_selection import mutual_info_classif
+from scipy import stats
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
 from pathlib import Path
 from typing import Any
 
 import matplotlib
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-from scipy import stats
-from sklearn.feature_selection import mutual_info_classif
-from sklearn.metrics import roc_auc_score
-from sklearn.preprocessing import OrdinalEncoder
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_PATH = PROJECT_ROOT / "bank-full.csv"
+DATA_PATH = PROJECT_ROOT / "data" / "bank-full.csv"
 OUTPUT_DIR = PROJECT_ROOT / "outputs" / "eda"
 FIGURES_DIR = OUTPUT_DIR / "figures"
 REPORT_PATH = PROJECT_ROOT / "Laporan_EDA_DIFW_KNN.md"
 
-NUMERIC_COLS = ["age", "balance", "day", "duration", "campaign", "pdays", "previous"]
+NUMERIC_COLS = ["age", "balance", "day",
+                "duration", "campaign", "pdays", "previous"]
 CATEGORICAL_COLS = [
     "job",
     "marital",
@@ -69,7 +70,8 @@ def load_dataset(path: Path) -> pd.DataFrame:
     expected_cols = set(NUMERIC_COLS + CATEGORICAL_COLS + [TARGET_COL])
     missing_cols = expected_cols - set(df.columns)
     if missing_cols:
-        raise ValueError(f"Kolom berikut tidak ditemukan pada dataset: {sorted(missing_cols)}")
+        raise ValueError(
+            f"Kolom berikut tidak ditemukan pada dataset: {sorted(missing_cols)}")
     return df
 
 
@@ -108,7 +110,8 @@ def analyze_missing_and_unknown(df: pd.DataFrame) -> pd.DataFrame:
         n_nan = int(series.isna().sum())
         n_unique = int(series.nunique(dropna=True))
         if col in CATEGORICAL_COLS or col == TARGET_COL:
-            n_unknown = int((series.astype(str).str.lower() == "unknown").sum())
+            n_unknown = int(
+                (series.astype(str).str.lower() == "unknown").sum())
             ftype = "Kategorikal" if col != TARGET_COL else "Target"
             top_val = str(series.value_counts().index[0])
             top_pct = round(100.0 * series.value_counts().iloc[0] / n_rows, 2)
@@ -181,7 +184,8 @@ def analyze_numeric_by_target(df: pd.DataFrame) -> pd.DataFrame:
     for col in NUMERIC_COLS:
         s_yes = df.loc[y_bin == 1, col].astype(float)
         s_no = df.loc[y_bin == 0, col].astype(float)
-        u_stat, u_pval = stats.mannwhitneyu(s_yes, s_no, alternative="two-sided")
+        u_stat, u_pval = stats.mannwhitneyu(
+            s_yes, s_no, alternative="two-sided")
         # Rank-biserial correlation: 1 - (2U)/(n1*n0) or signed difference
         n1, n0 = len(s_yes), len(s_no)
         auc_equiv = float(u_stat) / (n1 * n0)
@@ -222,7 +226,8 @@ def analyze_pdays(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
     # Cross-check consistency with previous and poutcome
     n_not_contacted = int(not_contacted.sum())
     n_prev_zero_when_neg1 = int((df.loc[not_contacted, "previous"] == 0).sum())
-    n_pout_unk_when_neg1 = int((df.loc[not_contacted, "poutcome"] == "unknown").sum())
+    n_pout_unk_when_neg1 = int(
+        (df.loc[not_contacted, "poutcome"] == "unknown").sum())
     n_contacted = int(contacted.sum())
     n_prev_gt0_when_contacted = int((df.loc[contacted, "previous"] > 0).sum())
 
@@ -266,7 +271,8 @@ def analyze_pdays(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
         "181-365 hari",
         "> 365 hari",
     ]
-    tmp = pd.DataFrame({"pdays_bucket": buckets, "y_bin": y_bin, "pdays": df["pdays"]})
+    tmp = pd.DataFrame(
+        {"pdays_bucket": buckets, "y_bin": y_bin, "pdays": df["pdays"]})
     grouped = (
         tmp.groupby("pdays_bucket", observed=False)
         .agg(
@@ -343,7 +349,8 @@ def analyze_categorical_features(
         ct = pd.crosstab(df[col], df[TARGET_COL])
         chi2, p_val, dof, _ = stats.chi2_contingency(ct)
         min_dim = min(ct.shape) - 1
-        cramers_v = float(np.sqrt(chi2 / (n_rows * min_dim))) if min_dim > 0 else 0.0
+        cramers_v = float(np.sqrt(chi2 / (n_rows * min_dim))
+                          ) if min_dim > 0 else 0.0
 
         summary_rows.append(
             {
@@ -381,7 +388,8 @@ def analyze_categorical_features(
                 }
             )
 
-    summary_df = pd.DataFrame(summary_rows).sort_values("cramers_v", ascending=False)
+    summary_df = pd.DataFrame(summary_rows).sort_values(
+        "cramers_v", ascending=False)
     detail_df = pd.DataFrame(detail_rows)
     return summary_df, detail_df
 
@@ -441,7 +449,8 @@ def create_figures(
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.6))
     target_counts = df[TARGET_COL].value_counts().reindex(["no", "yes"])
     colors = ["#4C72B0", "#DD8452"]
-    bars = axes[0].bar(target_counts.index, target_counts.values, color=colors, width=0.55)
+    bars = axes[0].bar(target_counts.index,
+                       target_counts.values, color=colors, width=0.55)
     axes[0].set_title("Distribusi Kelas Target (y)")
     axes[0].set_ylabel("Jumlah Observasi")
     axes[0].set_ylim(0, target_counts.max() * 1.18)
@@ -457,8 +466,10 @@ def create_figures(
             fontweight="bold",
         )
 
-    unk_sub = unknown_df[unknown_df["n_unknown"] > 0].sort_values("pct_unknown", ascending=True)
-    bars_u = axes[1].barh(unk_sub["feature"], unk_sub["pct_unknown"], color="#8172B3")
+    unk_sub = unknown_df[unknown_df["n_unknown"] >
+                         0].sort_values("pct_unknown", ascending=True)
+    bars_u = axes[1].barh(unk_sub["feature"],
+                          unk_sub["pct_unknown"], color="#8172B3")
     axes[1].set_title('Proporsi Kategori "unknown" per Fitur')
     axes[1].set_xlabel('Persentase "unknown" (%)')
     axes[1].set_xlim(0, max(unk_sub["pct_unknown"].max() * 1.25, 10))
@@ -477,28 +488,36 @@ def create_figures(
     saved_paths.append(p1)
 
     # 2. Numeric distributions with Q05, Median, Q95 markers (6 non-pdays or 6 numeric features)
-    plot_num_cols = ["age", "balance", "day", "campaign", "previous", "duration"]
+    plot_num_cols = ["age", "balance", "day",
+                     "campaign", "previous", "duration"]
     fig, axes = plt.subplots(2, 3, figsize=(14, 7.8))
     for ax, col in zip(axes.flat, plot_num_cols):
         s = df[col].astype(float)
         q05, q50, q95 = s.quantile([0.05, 0.50, 0.95])
         # Clip display at 99th percentile for readability on heavily skewed features
         lo = float(s.quantile(0.005)) if col == "balance" else float(s.min())
-        hi = float(s.quantile(0.99)) if col in {"balance", "campaign", "previous", "duration"} else float(s.max())
+        hi = float(s.quantile(0.99)) if col in {
+            "balance", "campaign", "previous", "duration"} else float(s.max())
         clipped = s.clip(lower=lo, upper=hi)
-        ax.hist(clipped, bins=35, color="#4C72B0", alpha=0.82, edgecolor="white", linewidth=0.4)
-        ax.axvline(q05, color="#2CA02C", linestyle="--", linewidth=1.3, label=f"Q05={q05:.0f}")
-        ax.axvline(q50, color="#D62728", linestyle="-", linewidth=1.5, label=f"Med={q50:.0f}")
-        ax.axvline(q95, color="#FF7F0E", linestyle="--", linewidth=1.3, label=f"Q95={q95:.0f}")
+        ax.hist(clipped, bins=35, color="#4C72B0",
+                alpha=0.82, edgecolor="white", linewidth=0.4)
+        ax.axvline(q05, color="#2CA02C", linestyle="--",
+                   linewidth=1.3, label=f"Q05={q05:.0f}")
+        ax.axvline(q50, color="#D62728", linestyle="-",
+                   linewidth=1.5, label=f"Med={q50:.0f}")
+        ax.axvline(q95, color="#FF7F0E", linestyle="--",
+                   linewidth=1.3, label=f"Q95={q95:.0f}")
         title_suffix = ""
         if col == "balance":
             title_suffix = " (clip P0.5–P99)"
         elif col in {"campaign", "previous", "duration"}:
             title_suffix = " (clip <=P99)"
-        ax.set_title(f"{col}{title_suffix}\nskew={s.skew():.2f}, Q95-Q05={q95 - q05:.0f}")
+        ax.set_title(
+            f"{col}{title_suffix}\nskew={s.skew():.2f}, Q95-Q05={q95 - q05:.0f}")
         ax.set_ylabel("Frekuensi")
         ax.legend(fontsize=8, loc="upper right")
-    fig.suptitle("Distribusi Fitur Numerik & Rentang Kuantil (Q05–Q95)", fontsize=13, fontweight="bold")
+    fig.suptitle("Distribusi Fitur Numerik & Rentang Kuantil (Q05–Q95)",
+                 fontsize=13, fontweight="bold")
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     p2 = FIGURES_DIR / "02_numeric_distributions_and_outliers.png"
     fig.savefig(p2, bbox_inches="tight")
@@ -509,12 +528,17 @@ def create_figures(
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.8))
     # Panel A: pdays contacted histogram
     pdays_pos = df.loc[df["pdays"] > -1, "pdays"]
-    axes[0].hist(pdays_pos, bins=35, color="#55A868", alpha=0.85, edgecolor="white", linewidth=0.4)
-    axes[0].axvline(pdays_pos.quantile(0.05), color="#2C3E50", linestyle="--", label=f"Q05={pdays_pos.quantile(0.05):.0f}")
-    axes[0].axvline(pdays_pos.median(), color="#D62728", linestyle="-", label=f"Med={pdays_pos.median():.0f}")
-    axes[0].axvline(pdays_pos.quantile(0.95), color="#FF7F0E", linestyle="--", label=f"Q95={pdays_pos.quantile(0.95):.0f}")
+    axes[0].hist(pdays_pos, bins=35, color="#55A868",
+                 alpha=0.85, edgecolor="white", linewidth=0.4)
+    axes[0].axvline(pdays_pos.quantile(0.05), color="#2C3E50",
+                    linestyle="--", label=f"Q05={pdays_pos.quantile(0.05):.0f}")
+    axes[0].axvline(pdays_pos.median(), color="#D62728",
+                    linestyle="-", label=f"Med={pdays_pos.median():.0f}")
+    axes[0].axvline(pdays_pos.quantile(0.95), color="#FF7F0E",
+                    linestyle="--", label=f"Q95={pdays_pos.quantile(0.95):.0f}")
     pct_neg1 = 100.0 * (df["pdays"] == -1).mean()
-    axes[0].set_title(f"Distribusi pdays (Subset > -1)\npdays=-1 mencapai {pct_neg1:.2f}% data")
+    axes[0].set_title(
+        f"Distribusi pdays (Subset > -1)\npdays=-1 mencapai {pct_neg1:.2f}% data")
     axes[0].set_xlabel("pdays (hari)")
     axes[0].set_ylabel("Frekuensi")
     axes[0].legend(fontsize=8)
@@ -526,27 +550,35 @@ def create_figures(
         pdays_buckets["yes_rate_pct"],
         color=["#7F7F7F", "#55A868", "#4C72B0", "#8172B3", "#CCB974"],
     )
-    axes[1].axhline(baseline_pct, color="black", linestyle="--", linewidth=1, label=f"Baseline ({baseline_pct:.2f}%)")
+    axes[1].axhline(baseline_pct, color="black", linestyle="--",
+                    linewidth=1, label=f"Baseline ({baseline_pct:.2f}%)")
     axes[1].set_xticks(range(len(pdays_buckets)))
-    axes[1].set_xticklabels(pdays_buckets["pdays_bucket"], rotation=22, ha="right", fontsize=8.5)
+    axes[1].set_xticklabels(pdays_buckets["pdays_bucket"],
+                            rotation=22, ha="right", fontsize=8.5)
     axes[1].set_title("Konversi (y=yes) per Kelompok pdays")
     axes[1].set_ylabel("Tingkat Konversi (%)")
     axes[1].set_ylim(0, max(pdays_buckets["yes_rate_pct"].max() * 1.22, 35))
     axes[1].legend(fontsize=8)
     for bar, val in zip(b_p, pdays_buckets["yes_rate_pct"]):
-        axes[1].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.8, f"{val:.1f}%", ha="center", fontsize=8.5)
+        axes[1].text(bar.get_x() + bar.get_width() / 2, bar.get_height() +
+                     0.8, f"{val:.1f}%", ha="center", fontsize=8.5)
 
     # Panel C: duration bucket conversion rate (leakage evidence)
-    b_d = axes[2].bar(range(len(dur_buckets)), dur_buckets["yes_rate_pct"], color="#C44E52", alpha=0.88)
-    axes[2].axhline(baseline_pct, color="black", linestyle="--", linewidth=1, label=f"Baseline ({baseline_pct:.2f}%)")
+    b_d = axes[2].bar(range(len(dur_buckets)),
+                      dur_buckets["yes_rate_pct"], color="#C44E52", alpha=0.88)
+    axes[2].axhline(baseline_pct, color="black", linestyle="--",
+                    linewidth=1, label=f"Baseline ({baseline_pct:.2f}%)")
     axes[2].set_xticks(range(len(dur_buckets)))
-    axes[2].set_xticklabels(dur_buckets["duration_bucket"], rotation=25, ha="right", fontsize=8.5)
-    axes[2].set_title("Bukti Leakage: Konversi vs duration\n(Wajib Dihapus untuk Pre-Call)")
+    axes[2].set_xticklabels(dur_buckets["duration_bucket"],
+                            rotation=25, ha="right", fontsize=8.5)
+    axes[2].set_title(
+        "Bukti Leakage: Konversi vs duration\n(Wajib Dihapus untuk Pre-Call)")
     axes[2].set_ylabel("Tingkat Konversi (%)")
     axes[2].set_ylim(0, max(dur_buckets["yes_rate_pct"].max() * 1.18, 70))
     axes[2].legend(fontsize=8)
     for bar, val in zip(b_d, dur_buckets["yes_rate_pct"]):
-        axes[2].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1.2, f"{val:.1f}%", ha="center", fontsize=8.5)
+        axes[2].text(bar.get_x() + bar.get_width() / 2, bar.get_height() +
+                     1.2, f"{val:.1f}%", ha="center", fontsize=8.5)
 
     fig.tight_layout()
     p3 = FIGURES_DIR / "03_pdays_and_duration_leakage.png"
@@ -557,21 +589,27 @@ def create_figures(
     # 4. Feature discriminative power (Mutual Information & Cramer's V)
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
     mi_plot = mi_df.sort_values("mutual_information", ascending=True)
-    mi_colors = ["#C44E52" if lk else "#4C72B0" for lk in mi_plot["is_leakage"]]
-    bars_mi = axes[0].barh(mi_plot["feature"], mi_plot["mutual_information"], color=mi_colors)
-    axes[0].set_title("Mutual Information terhadap Target y\n(Merah = Target Leakage)")
+    mi_colors = [
+        "#C44E52" if lk else "#4C72B0" for lk in mi_plot["is_leakage"]]
+    bars_mi = axes[0].barh(
+        mi_plot["feature"], mi_plot["mutual_information"], color=mi_colors)
+    axes[0].set_title(
+        "Mutual Information terhadap Target y\n(Merah = Target Leakage)")
     axes[0].set_xlabel("Mutual Information (nats)")
     axes[0].set_xlim(0, mi_plot["mutual_information"].max() * 1.22)
     for bar, val in zip(bars_mi, mi_plot["mutual_information"]):
-        axes[0].text(bar.get_width() + 0.001, bar.get_y() + bar.get_height() / 2, f"{val:.4f}", va="center", fontsize=8.5)
+        axes[0].text(bar.get_width() + 0.001, bar.get_y() +
+                     bar.get_height() / 2, f"{val:.4f}", va="center", fontsize=8.5)
 
     cv_plot = cat_summary.sort_values("cramers_v", ascending=True)
-    bars_cv = axes[1].barh(cv_plot["feature"], cv_plot["cramers_v"], color="#55A868")
+    bars_cv = axes[1].barh(
+        cv_plot["feature"], cv_plot["cramers_v"], color="#55A868")
     axes[1].set_title("Kekuatan Asosiasi Fitur Kategorikal (Cramer's V)")
     axes[1].set_xlabel("Cramer's V")
     axes[1].set_xlim(0, cv_plot["cramers_v"].max() * 1.22)
     for bar, val in zip(bars_cv, cv_plot["cramers_v"]):
-        axes[1].text(bar.get_width() + 0.004, bar.get_y() + bar.get_height() / 2, f"{val:.4f}", va="center", fontsize=8.5)
+        axes[1].text(bar.get_width() + 0.004, bar.get_y() +
+                     bar.get_height() / 2, f"{val:.4f}", va="center", fontsize=8.5)
 
     fig.tight_layout()
     p4 = FIGURES_DIR / "04_feature_discriminative_power.png"
@@ -580,21 +618,27 @@ def create_figures(
     saved_paths.append(p4)
 
     # 5. Conversion rates for key categorical predictors
-    top_cat_cols = ["poutcome", "month", "contact", "housing", "marital", "job"]
+    top_cat_cols = ["poutcome", "month",
+                    "contact", "housing", "marital", "job"]
     baseline_pct = 100.0 * (df[TARGET_COL] == "yes").mean()
     fig, axes = plt.subplots(2, 3, figsize=(15, 8.5))
     for ax, col in zip(axes.flat, top_cat_cols):
-        sub = cat_detail[cat_detail["feature"] == col].sort_values("yes_rate_pct", ascending=True)
-        bars_c = ax.barh(sub["category"], sub["yes_rate_pct"], color="#4C72B0", alpha=0.88)
-        ax.axvline(baseline_pct, color="#D62728", linestyle="--", linewidth=1.2, label=f"Baseline ({baseline_pct:.1f}%)")
+        sub = cat_detail[cat_detail["feature"] == col].sort_values(
+            "yes_rate_pct", ascending=True)
+        bars_c = ax.barh(sub["category"], sub["yes_rate_pct"],
+                         color="#4C72B0", alpha=0.88)
+        ax.axvline(baseline_pct, color="#D62728", linestyle="--",
+                   linewidth=1.2, label=f"Baseline ({baseline_pct:.1f}%)")
         ax.set_title(f"Tingkat Konversi (y=yes) — {col}")
         ax.set_xlabel("Konversi (%)")
         ax.set_xlim(0, max(sub["yes_rate_pct"].max() * 1.22, 20))
         ax.tick_params(axis="y", labelsize=8.5)
         ax.legend(fontsize=8, loc="lower right")
         for bar, val in zip(bars_c, sub["yes_rate_pct"]):
-            ax.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height() / 2, f"{val:.1f}%", va="center", fontsize=8)
-    fig.suptitle("Analisis Tingkat Konversi pada Fitur Kategorikal Utama", fontsize=13, fontweight="bold")
+            ax.text(bar.get_width() + 0.5, bar.get_y() +
+                    bar.get_height() / 2, f"{val:.1f}%", va="center", fontsize=8)
+    fig.suptitle("Analisis Tingkat Konversi pada Fitur Kategorikal Utama",
+                 fontsize=13, fontweight="bold")
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     p5 = FIGURES_DIR / "05_categorical_conversion_rates.png"
     fig.savefig(p5, bbox_inches="tight")
@@ -638,21 +682,26 @@ def build_markdown_report(
 ) -> str:
     """Build Laporan_EDA_DIFW_KNN.md combining empirical outputs and research implications."""
     unknown_only = unknown_df[unknown_df["n_unknown"] > 0][
-        ["feature", "n_unique", "n_unknown", "pct_unknown", "mode_category", "mode_pct"]
+        ["feature", "n_unique", "n_unknown",
+            "pct_unknown", "mode_category", "mode_pct"]
     ]
     top_mi_noleak = mi_df[~mi_df["is_leakage"]].head(5)
 
     poutcome_sub = cat_detail[cat_detail["feature"] == "poutcome"][
-        ["category", "count", "pct_total", "yes_count", "yes_rate_pct", "lift_vs_baseline"]
+        ["category", "count", "pct_total", "yes_count",
+            "yes_rate_pct", "lift_vs_baseline"]
     ]
     month_sub = cat_detail[cat_detail["feature"] == "month"][
-        ["category", "count", "pct_total", "yes_count", "yes_rate_pct", "lift_vs_baseline"]
+        ["category", "count", "pct_total", "yes_count",
+            "yes_rate_pct", "lift_vs_baseline"]
     ]
     contact_sub = cat_detail[cat_detail["feature"] == "contact"][
-        ["category", "count", "pct_total", "yes_count", "yes_rate_pct", "lift_vs_baseline"]
+        ["category", "count", "pct_total", "yes_count",
+            "yes_rate_pct", "lift_vs_baseline"]
     ]
     job_sub = cat_detail[cat_detail["feature"] == "job"][
-        ["category", "count", "pct_total", "yes_count", "yes_rate_pct", "lift_vs_baseline"]
+        ["category", "count", "pct_total", "yes_count",
+            "yes_rate_pct", "lift_vs_baseline"]
     ]
 
     num_compact = numeric_profile[
@@ -684,11 +733,15 @@ def build_markdown_report(
         ]
     ]
 
-    bal_row = numeric_profile.loc[numeric_profile["feature"] == "balance"].iloc[0]
-    poutcome_unk_pct = float(unknown_df.loc[unknown_df["feature"] == "poutcome", "pct_unknown"].iloc[0])
-    contact_unk_pct = float(unknown_df.loc[unknown_df["feature"] == "contact", "pct_unknown"].iloc[0])
+    bal_row = numeric_profile.loc[numeric_profile["feature"]
+                                  == "balance"].iloc[0]
+    poutcome_unk_pct = float(
+        unknown_df.loc[unknown_df["feature"] == "poutcome", "pct_unknown"].iloc[0])
+    contact_unk_pct = float(
+        unknown_df.loc[unknown_df["feature"] == "contact", "pct_unknown"].iloc[0])
     contacted_multiplier = (
-        pdays_meta["yes_rate_contacted_pct"] / pdays_meta["yes_rate_not_contacted_pct"]
+        pdays_meta["yes_rate_contacted_pct"] /
+        pdays_meta["yes_rate_not_contacted_pct"]
         if pdays_meta["yes_rate_not_contacted_pct"] > 0
         else 0.0
     )
@@ -801,7 +854,8 @@ def build_markdown_report(
         df_to_markdown_table(job_sub),
         "",
         "> **Implikasi untuk *Feature Weighting* (`DIFW-KNN`):**",
-        f"> Di luar `duration` (yang dihapus), prediktor pra-panggilan terkuat menurut Mutual Information adalah {', '.join(f'`{f}`' for f in top_mi_noleak['feature'])}. Sementara fitur dengan informasi marginal kecil akan menambah noise pada jarak seragam. Hal ini memvalidasi hipotesis bahwa **KNN dengan bobot seragam (`E0`–`E2`) rentan terdilusi oleh fitur berdaya pisah rendah**, sehingga *Supervised Triplet Feature Weighting* (`E3`, `E5`) diharapkan memberikan bobot lebih besar pada fitur relevan dan menekan fitur *noise*.",
+        f"> Di luar `duration` (yang dihapus), prediktor pra-panggilan terkuat menurut Mutual Information adalah {', '.join(f'`{f}`' for f in top_mi_noleak[
+            'feature'])}. Sementara fitur dengan informasi marginal kecil akan menambah noise pada jarak seragam. Hal ini memvalidasi hipotesis bahwa **KNN dengan bobot seragam (`E0`–`E2`) rentan terdilusi oleh fitur berdaya pisah rendah**, sehingga *Supervised Triplet Feature Weighting* (`E3`, `E5`) diharapkan memberikan bobot lebih besar pada fitur relevan dan menekan fitur *noise*.",
         "",
         "---",
         "",
@@ -844,19 +898,26 @@ def main() -> None:
     mi_df = compute_mutual_information(df)
 
     # Save CSV outputs
-    pd.DataFrame([overview]).to_csv(OUTPUT_DIR / "dataset_overview.csv", index=False)
-    unknown_df.to_csv(OUTPUT_DIR / "missing_and_unknown_summary.csv", index=False)
+    pd.DataFrame([overview]).to_csv(
+        OUTPUT_DIR / "dataset_overview.csv", index=False)
+    unknown_df.to_csv(
+        OUTPUT_DIR / "missing_and_unknown_summary.csv", index=False)
     df[TARGET_COL].value_counts().rename_axis("y").reset_index(name="count").to_csv(
         OUTPUT_DIR / "target_distribution.csv", index=False
     )
     numeric_profile.to_csv(OUTPUT_DIR / "numeric_profile.csv", index=False)
     numeric_by_target.to_csv(OUTPUT_DIR / "numeric_by_target.csv", index=False)
     pdays_buckets.to_csv(OUTPUT_DIR / "pdays_analysis.csv", index=False)
-    pd.DataFrame([pdays_meta]).to_csv(OUTPUT_DIR / "pdays_metadata.csv", index=False)
-    dur_buckets.to_csv(OUTPUT_DIR / "duration_leakage_analysis.csv", index=False)
-    pd.DataFrame([dur_meta]).to_csv(OUTPUT_DIR / "duration_leakage_metadata.csv", index=False)
-    cat_summary.to_csv(OUTPUT_DIR / "categorical_discriminative_summary.csv", index=False)
-    cat_detail.to_csv(OUTPUT_DIR / "categorical_conversion_details.csv", index=False)
+    pd.DataFrame([pdays_meta]).to_csv(
+        OUTPUT_DIR / "pdays_metadata.csv", index=False)
+    dur_buckets.to_csv(
+        OUTPUT_DIR / "duration_leakage_analysis.csv", index=False)
+    pd.DataFrame([dur_meta]).to_csv(
+        OUTPUT_DIR / "duration_leakage_metadata.csv", index=False)
+    cat_summary.to_csv(
+        OUTPUT_DIR / "categorical_discriminative_summary.csv", index=False)
+    cat_detail.to_csv(
+        OUTPUT_DIR / "categorical_conversion_details.csv", index=False)
     mi_df.to_csv(OUTPUT_DIR / "feature_mutual_information.csv", index=False)
 
     figure_paths = create_figures(
@@ -886,8 +947,10 @@ def main() -> None:
     REPORT_PATH.write_text(report_text, encoding="utf-8")
 
     print("EDA selesai dijalankan.")
-    print(f"Rows: {overview['n_rows']}, Cols: {overview['n_cols']}, Duplicates: {overview['n_duplicate_rows']}, NaN: {overview['n_explicit_nan']}")
-    print(f"Target yes: {overview['n_yes']} ({overview['pct_yes']:.2f}%), no: {overview['n_no']} ({overview['pct_no']:.2f}%)")
+    print(
+        f"Rows: {overview['n_rows']}, Cols: {overview['n_cols']}, Duplicates: {overview['n_duplicate_rows']}, NaN: {overview['n_explicit_nan']}")
+    print(
+        f"Target yes: {overview['n_yes']} ({overview['pct_yes']:.2f}%), no: {overview['n_no']} ({overview['pct_no']:.2f}%)")
     print(f"Laporan disimpan di: {REPORT_PATH}")
     print(f"Output tabel & grafik di: {OUTPUT_DIR}")
 
